@@ -1,32 +1,41 @@
 import os
-import json
+import pickle
 from typing import List, Dict, Any
 
-# Dynamically resolve the absolute path to the project root
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-
-# Ensure the data directory exists
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# Define the text file paths
-BOOKS_FILE = os.path.join(DATA_DIR, "books.txt")
-USERS_FILE = os.path.join(DATA_DIR, "users.txt")
+# File paths for the binary database
+USERS_FILE = "users.bin"
+BOOKS_FILE = "books.bin"
+LOANS_FILE = (
+    "loans.bin"  # Agrego esta también porque vi manage_loans_menu en tu traceback
+)
 
 
-def save_data(filepath: str, data: List[Dict[str, Any]]) -> None:
-    """Writes a list of dictionaries to a JSON-formatted text file."""
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+def save_data(filepath: str, data: Any) -> None:
+    """
+    Overwrites the binary file with the current dictionary/list.
+    """
+    # Using 'wb' (Write Binary) mode to serialize the Python object
+    with open(filepath, "wb") as file:
+        pickle.dump(data, file)
 
 
-def load_data(filepath: str) -> List[Dict[str, Any]]:
-    """Loads a JSON-formatted text file into a list of dictionaries."""
+def load_data(filepath: str, default_data: Any = None) -> Any:
+    """
+    Reads the binary file and reconstructs it back into Python objects.
+    Returns the default_data if the file doesn't exist or is empty.
+    """
+    if default_data is None:
+        default_data = []  # Could be [] or {} depending on the base structure
+
+    # If the file does not exist, create it with the default structure
     if not os.path.exists(filepath):
-        return []
+        save_data(filepath, default_data)
+        return default_data
 
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        return []
+        # Using 'rb' (Read Binary) mode to deserialize the data
+        with open(filepath, "rb") as file:
+            return pickle.load(file)
+    except EOFError:
+        # Handle the exception in case the binary file was created but is completely empty
+        return default_data
